@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Report Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    :root {
+      --bg: #f4f0eb;
+      --surface: #ffffff;
+      --border: #d8d0c8;
+      --accent: #2563eb;
+      --accent2: #0ea5e9;
+      --text: #1a1a2e;
+      --muted: #7a7a9a;
+      --fail: #dc2626;
+      --c-grade: #d97706;
+      --b-grade: #0891b2;
+      --a-grade: #16a34a;
+    }
+ 
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px;
+      position: relative;
+      overflow-x: hidden;
+    }
+ 
+    /* Grid overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(37,99,235,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37,99,235,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+ 
+    .container {
+      width: 100%;
+      max-width: 560px;
+      position: relative;
+      z-index: 1;
+    }
+ 
+    /* Header */
+    .header {
+      margin-bottom: 40px;
+      text-align: left;
+    }
+ 
+    .header .tag {
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      display: inline-block;
+      padding: 3px 10px;
+      margin-bottom: 12px;
+    }
+ 
+    .header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(52px, 12vw, 80px);
+      line-height: 0.9;
+      letter-spacing: 0.02em;
+      color: var(--text);
+    }
+ 
+    .header h1 span { color: var(--accent); }
+ 
+    .header p {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.05em;
+    }
+ 
+    /* Form */
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      position: relative;
+    }
+ 
+    .form-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 40px; height: 40px;
+      border-top: 2px solid var(--accent);
+      border-left: 2px solid var(--accent);
+    }
+ 
+    .form-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 40px; height: 40px;
+      border-bottom: 2px solid var(--accent);
+      border-right: 2px solid var(--accent);
+    }
+ 
+    .field {
+      margin-bottom: 20px;
+    }
+ 
+    label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+ 
+    input {
+      width: 100%;
+      background: #f9f7f4;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+ 
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+ 
+    input::placeholder { color: var(--border); }
+ 
+    .subjects-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+ 
+    .subjects-grid .field { margin-bottom: 0; }
+ 
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+      position: relative;
+    }
+ 
+    .divider span {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--surface);
+      padding: 0 12px;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+ 
+    button {
+      width: 100%;
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 0.12em;
+      padding: 16px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      margin-top: 8px;
+    }
+ 
+    button:hover {
+      background: #1d4ed8;
+      box-shadow: 0 0 30px rgba(37,99,235,0.25);
+    }
+ 
+    button:active { transform: scale(0.99); }
+ 
+    /* Error */
+    .error-msg {
+      color: var(--fail);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      margin-top: 6px;
+      display: none;
+    }
+ 
+    /* Result Card */
+    #result {
+      margin-top: 32px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      pointer-events: none;
+    }
+ 
+    #result.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+ 
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      position: relative;
+    }
+ 
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+    }
+ 
+    .result-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      line-height: 1;
+    }
+ 
+    .result-name span {
+      display: block;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+ 
+    .grade-badge {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 56px;
+      line-height: 1;
+      min-width: 72px;
+      text-align: center;
+      padding: 8px 12px;
+      border: 2px solid;
+      transition: color 0.3s, border-color 0.3s;
+    }
+ 
+    .grade-badge.grade-A { color: var(--a-grade); border-color: var(--a-grade); box-shadow: 0 0 20px rgba(22,163,74,0.15); }
+    .grade-badge.grade-B { color: var(--b-grade); border-color: var(--b-grade); box-shadow: 0 0 20px rgba(8,145,178,0.15); }
+    .grade-badge.grade-C { color: var(--c-grade); border-color: var(--c-grade); box-shadow: 0 0 20px rgba(217,119,6,0.15); }
+    .grade-badge.grade-Fail { color: var(--fail); border-color: var(--fail); box-shadow: 0 0 20px rgba(220,38,38,0.15); }
+ 
+    /* Stats Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+ 
+    .stat-box {
+      background: #f4f0eb;
+      border: 1px solid var(--border);
+      padding: 16px;
+    }
+ 
+    .stat-box .stat-label {
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+ 
+    .stat-box .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      color: var(--accent2);
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+ 
+    /* Marks breakdown */
+    .marks-section {
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+ 
+    .marks-title {
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+ 
+    .mark-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+ 
+    .mark-subject {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      width: 90px;
+      flex-shrink: 0;
+    }
+ 
+    .mark-bar-track {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+ 
+    .mark-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+ 
+    .mark-bar-fill.low { background: var(--fail); }
+    .mark-bar-fill.mid { background: var(--c-grade); }
+    .mark-bar-fill.high { background: var(--b-grade); }
+    .mark-bar-fill.top { background: var(--a-grade); }
+ 
+    .mark-num {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      width: 30px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+ 
+    <div class="header">
+      <div class="tag">// Academic Evaluator</div>
+      <h1>STUDENT<br/><span>REPORT</span></h1>
+      <p>ENTER MARKS OUT OF 100 PER SUBJECT</p>
+    </div>
+ 
+    <div class="form-card">
+ 
+      <div class="field">
+        <label>Student Name</label>
+        <input type="text" id="studentName" placeholder="e.g. Riya Sharma" maxlength="50"/>
+        <div class="error-msg" id="nameError">Please enter a valid name.</div>
+      </div>
+ 
+      <div class="divider"><span>5 Subjects</span></div>
+ 
+      <div class="subjects-grid">
+        <div class="field">
+          <label>Mathematics</label>
+          <input type="number" id="m1" placeholder="0–100" min="0" max="100"/>
+        </div>
+        <div class="field">
+          <label>Science</label>
+          <input type="number" id="m2" placeholder="0–100" min="0" max="100"/>
+        </div>
+        <div class="field">
+          <label>English</label>
+          <input type="number" id="m3" placeholder="0–100" min="0" max="100"/>
+        </div>
+        <div class="field">
+          <label>History</label>
+          <input type="number" id="m4" placeholder="0–100" min="0" max="100"/>
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Computer Science</label>
+          <input type="number" id="m5" placeholder="0–100" min="0" max="100"/>
+        </div>
+      </div>
+      <div class="error-msg" id="markError">All marks must be valid numbers between 0 and 100.</div>
+ 
+      <button onclick="calculateResult()">GENERATE REPORT →</button>
+    </div>
+ 
+    <!-- Result -->
+    <div id="result">
+      <div class="result-card">
+        <div class="result-header">
+          <div class="result-name">
+            <span>Student</span>
+            <span id="displayName">—</span>
+          </div>
+          <div class="grade-badge" id="gradeBadge">—</div>
+        </div>
+ 
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Total Score</div>
+            <div class="stat-value" id="displayTotal">—</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Average</div>
+            <div class="stat-value" id="displayAvg">—</div>
+          </div>
+        </div>
+ 
+        <div class="marks-section">
+          <div class="marks-title">// Subject Breakdown</div>
+          <div id="marksBreakdown"></div>
+        </div>
+      </div>
+    </div>
+ 
+  </div>
+ 
+  <script>
+    const subjects = ["Mathematics", "Science", "English", "History", "Comp. Sci"];
+    const inputIds = ["m1", "m2", "m3", "m4", "m5"];
+ 
+    // --- One function that does all the work ---
+    function calculateResult() {
+      // Hide previous errors
+      document.getElementById("nameError").style.display = "none";
+      document.getElementById("markError").style.display = "none";
+ 
+      // Validate name
+      const name = document.getElementById("studentName").value.trim();
+      if (!name) {
+        document.getElementById("nameError").style.display = "block";
+        return;
+      }
+ 
+      // --- One array: store marks ---
+      const marks = [];
+ 
+      // --- One loop: collect and validate marks ---
+      for (let i = 0; i < inputIds.length; i++) {
+        const val = parseFloat(document.getElementById(inputIds[i]).value);
+        if (isNaN(val) || val < 0 || val > 100) {
+          document.getElementById("markError").style.display = "block";
+          return;
+        }
+        marks.push(val);
+      }
+ 
+      // Calculate total using loop
+      let total = 0;
+      for (let i = 0; i < marks.length; i++) {
+        total += marks[i];
+      }
+ 
+      const avg = total / marks.length;
+ 
+      // --- One conditional (if-else): determine grade ---
+      let grade;
+      if (avg >= 80) {
+        grade = "A";
+      } else if (avg >= 60) {
+        grade = "B";
+      } else if (avg >= 40) {
+        grade = "C";
+      } else {
+        grade = "Fail";
+      }
+ 
+      // Update UI
+      document.getElementById("displayName").textContent = name.toUpperCase();
+      document.getElementById("displayTotal").textContent = total;
+      document.getElementById("displayAvg").textContent = avg.toFixed(1);
+ 
+      const badge = document.getElementById("gradeBadge");
+      badge.textContent = grade;
+      badge.className = "grade-badge grade-" + grade;
+ 
+      // Render bars
+      renderBreakdown(marks);
+ 
+      // Show result with animation
+      const resultEl = document.getElementById("result");
+      resultEl.classList.remove("visible");
+      setTimeout(() => resultEl.classList.add("visible"), 50);
+    }
+ 
+    function renderBreakdown(marks) {
+      const container = document.getElementById("marksBreakdown");
+      container.innerHTML = "";
+ 
+      for (let i = 0; i < marks.length; i++) {
+        const pct = marks[i];
+        let barClass = pct >= 80 ? "top" : pct >= 60 ? "high" : pct >= 40 ? "mid" : "low";
+ 
+        const row = document.createElement("div");
+        row.className = "mark-row";
+        row.innerHTML = `
+          <div class="mark-subject">${subjects[i]}</div>
+          <div class="mark-bar-track">
+            <div class="mark-bar-fill ${barClass}" id="bar${i}"></div>
+          </div>
+          <div class="mark-num">${marks[i]}</div>
+        `;
+        container.appendChild(row);
+      }
+ 
+      // Animate bars after render
+      setTimeout(() => {
+        for (let i = 0; i < marks.length; i++) {
+          document.getElementById("bar" + i).style.width = marks[i] + "%";
+        }
+      }, 100);
+    }
+ 
+    // Allow Enter key to submit
+    document.addEventListener("keydown", e => {
+      if (e.key === "Enter") calculateResult();
+    });
+  </script>
+</body>
+</html>
